@@ -9,8 +9,8 @@
 			"TweenModel_Rojo": {
 				"$className": "Folder",
 
-				"MainModule": {
-					"$path": "MainModule"
+				"TweenModel": {
+					"$path": "src/"
 				}
 			}
 		}
