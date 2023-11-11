@@ -9,6 +9,9 @@ Credits:
 -- GGshor
 
 
+NOTE: This module tweens models on client instead of server! When testing in studio make sure to use Play!
+
+
 TweenModel.new(): Tween
 ------------------------------------------------------------------------------
 //////////////////////////////////////////////////////////////////////////////
