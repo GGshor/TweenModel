@@ -216,12 +216,12 @@ end
 if RunService:IsServer() then
 	-- Setup client reference
 	if ReplicatedStorage:FindFirstChild("TweenModel") then
-		ClientReference.Value = ReplicatedStorage.TweenModel
+		ClientReference.Value = ReplicatedStorage:WaitForChild("TweenModel")
 	else
 		-- Setting the script parent within the script is allowed.
 		-- selene: allow(incorrect_standard_library_use)
 		script.Parent = ReplicatedStorage
-		ClientReference.Value = ReplicatedStorage.TweenModel
+		ClientReference.Value = ReplicatedStorage:WaitForChild("TweenModel")
 	end
 
 	-- Insert setup script to players
