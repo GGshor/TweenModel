@@ -195,6 +195,17 @@ function TweenModel.new(model: Model, info: TweenInfo, target: Target): Tween
 	return createdTween
 end
 
+function TweenModel:PlayInstant(model: Model, info: TweenInfo, target: Target): Tween
+	-- Create the new tween
+	local tween = TweenModel.new(model, info, target)
+
+	-- Play the tween
+	tween:Play()
+
+	-- Return tween if server needs it
+	return tween
+end
+
 if RunService:IsServer() then
 	-- Setup client reference
 	if ReplicatedStorage:FindFirstChild("TweenModel") then
