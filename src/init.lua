@@ -187,6 +187,12 @@ function TweenModel.new(model: Model, info: TweenInfo, target: Target): Tween
 
 
 	createdTween.Completed:Once(function()
+		-- Update model position on server side
+		model:PivotTo(CFrameValue.Value)
+
+		-- Remove from active tweens list
+		activeTweens[model] = nil
+
 		-- Disconnect everything
 		createdTween:Destroy()
 	end)
@@ -206,6 +212,7 @@ function TweenModel:PlayInstant(model: Model, info: TweenInfo, target: Target): 
 	return tween
 end
 
+-- Setup server side
 if RunService:IsServer() then
 	-- Setup client reference
 	if ReplicatedStorage:FindFirstChild("TweenModel") then
@@ -225,6 +232,7 @@ if RunService:IsServer() then
 		task.spawn(SetupClient, player)
 	end
 
+-- Setup client side
 elseif RunService:IsClient() then
 	TweenEvent.OnClientEvent:Connect(function(tweendata: TweenData)
 		if tweendata.State == Enum.PlaybackState.Playing then
@@ -246,9 +254,11 @@ elseif RunService:IsClient() then
 	end)
 end
 
+-- Notify logs about version
+print(`{OutputPrefix} Module loaded! Current version: {ModuleVersion}`)
 
-warn(`{OutputPrefix} Module loaded! Current version: {ModuleVersion}`)
-
+-- Run version check in the background
 task.spawn(CheckVersion)
+
 
 return TweenModel
