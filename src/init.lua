@@ -46,7 +46,11 @@ local activeTweens = {} :: {[Instance]: TweenData}
 
 
 --// Local functions
-local function CheckVersion()
+
+--[=[
+	Checks the version
+]=]
+local function CheckVersion(): ()
 	local info = MarketPlaceService:GetProductInfo(6019253834, Enum.InfoType.Asset)
 	local description: string = info.Description
 
@@ -56,6 +60,13 @@ local function CheckVersion()
 	end
 end
 
+--[=[
+	Transforms `TweenInfo` into `TweenTable`
+
+	@param info TweenInfo -- The TweenInfo you want to transform
+
+	@return TweenTable -- The transformed TweenInfo
+]=]
 local function TweenInfoToTweenTable(info: TweenInfo): TweenTable
 	return {
 		EasingDirection = info.EasingDirection,
@@ -67,6 +78,13 @@ local function TweenInfoToTweenTable(info: TweenInfo): TweenTable
 	}
 end
 
+--[=[
+	Transforms `TweenTable` into `TweenInfo`
+
+	@param info TweenTable -- The TweenInfo you want to transform
+
+	@return TweenInfo -- The transformed TweenInfo
+]=]
 local function TweenTableToTweenInfo(info: TweenTable): TweenInfo
 	return TweenInfo.new(
 		info.Time or 0,
@@ -78,6 +96,25 @@ local function TweenTableToTweenInfo(info: TweenTable): TweenInfo
 	)
 end
 
+--[=[
+	Setups the client side of the module on client
+
+	@param player Player -- The player where client is setup
+]=]
+local function SetupClient(player: Player): ()
+	local clone = TweenModelSetup:Clone()
+	local playerscripts = player:WaitForChild("PlayerGui", 15)
+
+	-- Retry if player still exists
+	if not playerscripts and player.Parent == Players then
+		SetupClient(player)
+	-- Give up when client doesn't exist anymore
+	elseif not playerscripts then
+		return
+	end
+
+	clone.Parent = playerscripts
+end
 
 --// Public Functions
 
@@ -163,16 +200,18 @@ if RunService:IsServer() then
 	if ReplicatedStorage:FindFirstChild("TweenModel") then
 		ClientReference.Value = ReplicatedStorage.TweenModel
 	else
+		-- Setting the script parent within the script is allowed.
+		-- selene: allow(incorrect_standard_library_use)
 		script.Parent = ReplicatedStorage
 		ClientReference.Value = ReplicatedStorage.TweenModel
 	end
 
 	-- Insert setup script to players
-	Players.PlayerAdded:Connect(function(plr)
-		TweenModelSetup:Clone().Parent = plr:WaitForChild("StarterGui")
+	Players.PlayerAdded:Connect(function(player: Player)
+		SetupClient(player)
 	end)
-	for _, plr in Players:GetPlayers() do
-		TweenModelSetup:Clone().Parent = plr:WaitForChild("StarterGui")
+	for _, player: Player in Players:GetPlayers() do
+		task.spawn(SetupClient, player)
 	end
 
 elseif RunService:IsClient() then
@@ -186,6 +225,10 @@ elseif RunService:IsClient() then
 			local createdTween = TweenService:Create(CFrameValue, TweenTableToTweenInfo(tweendata.Info), {
 				Value = tweendata.TargetCFrame
 			})
+
+			CFrameValue.Changed:Connect(function()
+				tweendata.Model:PivotTo(CFrameValue.Value)
+			end)
 
 			createdTween:Play()
 		end
