@@ -14,7 +14,7 @@ local HttpService = game:GetService("HttpService")
 
 --// Constants
 local TweenModel = {}
-local ModuleVersion = "2.0.0"
+local ModuleVersion = "2.0.1"
 local OutputPrefix = "[TweenModel]:"
 local TweenModelSetup = script:WaitForChild("TweenModelSetup")
 local ClientReference = TweenModelSetup:WaitForChild("MainModuleReference") :: ObjectValue
