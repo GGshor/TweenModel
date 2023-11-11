@@ -176,7 +176,7 @@ if RunService:IsServer() then
 	end
 
 elseif RunService:IsClient() then
-	TweenEvent.OnClientEvent(function(tweendata: TweenData)
+	TweenEvent.OnClientEvent:Connect(function(tweendata: TweenData)
 		if tweendata.State == Enum.PlaybackState.Playing then
 			activeTweens[tweendata.Model] = tweendata
 
