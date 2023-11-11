@@ -276,13 +276,15 @@ end
 -- Setup server side
 if RunService:IsServer() then
 	-- Setup client reference
-	if ReplicatedStorage:FindFirstChild("TweenModel") then
+	if script.Parent == ReplicatedStorage then
+		ClientReference.Value = script
+	elseif ReplicatedStorage:FindFirstChild("TweenModel") then
 		ClientReference.Value = ReplicatedStorage:WaitForChild("TweenModel")
+		return require(ClientReference.Value)
 	else
-		-- Setting the script parent within the script is allowed.
-		-- selene: allow(incorrect_standard_library_use)
-		script.Parent = ReplicatedStorage
+		script:Clone().Parent = ReplicatedStorage
 		ClientReference.Value = ReplicatedStorage:WaitForChild("TweenModel")
+		return require(ClientReference.Value)
 	end
 
 	-- Insert setup script to players
