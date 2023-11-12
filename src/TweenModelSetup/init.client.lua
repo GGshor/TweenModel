@@ -7,6 +7,3 @@ local MainModuleReference = script:WaitForChild("MainModuleReference") :: Object
 
 -- Initiliaze client
 require(MainModuleReference.Value)
-
--- Destroy the script
-script:Destroy()
