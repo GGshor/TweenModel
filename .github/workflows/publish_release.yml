@@ -15,4 +15,4 @@ jobs:
         uses: ok-nick/setup-aftman@v0.4.2
 
       - name: publish to roblox
-        run: rojo upload --cookie ${{ secrets.ROBLOX_TOKEN }} --asset_id ${{ secrets.ASSET_ID }} publish.project.json
+        run: rojo upload --cookie ${{ secrets.ROBLOX_TOKEN }} --asset_id $ASSET_ID publish.project.json
