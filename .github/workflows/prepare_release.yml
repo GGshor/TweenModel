@@ -1,0 +1,38 @@
+name: Create a new draft release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'The release tag'
+        required: true
+        type: string
+      release_name:
+        description: 'the release name'
+        required: true
+        type: string
+
+jobs:
+  create-draft:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: setup-aftman
+        uses: ok-nick/setup-aftman@v0.4.2
+
+      - name: Build module
+        run: rojo build default.project.json -o TweenModel.rbxm
+
+      - name: Create draft release
+        uses: ncipollo/release-action@v1.13.0
+        with:
+          name: ${{ inputs.release_name }}
+          tag: ${{ inputs.release_tag }}
+          prerelease: true
+          artifacts: 'TweenModel.rbxm'
+          
+      
