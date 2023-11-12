@@ -1,6 +1,10 @@
 {
-	"name": "TweenModel",
+	"name": "MainModule",
 	"tree": {
-        "$path": "src/"
+		"$path": "loader.module.lua",
+
+		"TweenModel": {
+			"$path": "src/"
+		}
 	}
 }
