@@ -1,18 +1,10 @@
 {
 	"name": "TweenModel",
 	"tree": {
-		"$className": "DataModel",
+		"$path": "loader.module.lua",
 
-		"ReplicatedStorage": {
-			"$className": "ReplicatedStorage",
-
-			"TweenModel_Rojo": {
-				"$className": "Folder",
-
-				"TweenModel": {
-					"$path": "src/"
-				}
-			}
+		"TweenModel": {
+			"$path": "src/"
 		}
 	}
 }

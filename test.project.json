@@ -1,0 +1,18 @@
+{
+	"name": "TweenModel test",
+	"tree": {
+		"$className": "DataModel",
+
+		"ReplicatedStorage": {
+			"$className": "ReplicatedStorage",
+
+			"TweenModel_Rojo": {
+				"$className": "Folder",
+
+				"TweenModel": {
+					"$path": "src/"
+				}
+			}
+		}
+	}
+}
