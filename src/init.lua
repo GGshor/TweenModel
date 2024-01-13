@@ -4,6 +4,9 @@
 	@GGshor
 ]]
 
+--// Configuration
+local DebugEnabled = false
+
 --// Services
 local TweenService = game:GetService("TweenService")
 local MarketPlaceService = game:GetService("MarketplaceService")
@@ -13,39 +16,35 @@ local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 
 --// Constants
-local TweenModel = {}
-local ModuleVersion = "2.0.2"
+local ModuleVersion = "2.2.1"
 local OutputPrefix = "[TweenModel]:"
 local TweenModelSetup = script:WaitForChild("TweenModelSetup")
 local ClientReference = TweenModelSetup:WaitForChild("MainModuleReference") :: ObjectValue
 local TweenEvent = script:WaitForChild("TweenEvent") :: RemoteEvent
+local Types = require(script:WaitForChild("Types"))
 
---// Custom types
-export type Target = CFrame | BasePart
-export type TweenTable = {
-	EasingDirection: Enum.EasingDirection,
-	Time: number,
-	DelayTime: number,
-	RepeatCount: number,
-	EasingStyle: Enum.EasingStyle,
-	Reverses: boolean,
-}
-export type TweenData = {
-	Id: string,
-	State: Enum.PlaybackState,
-	OriginalCFrame: CFrame,
-	TargetCFrame: CFrame,
-	Info: TweenTable,
-	Model: Model,
-	Tween: Tween?,
-	Destroying: boolean,
-	CFrameInstance: CFrameValue,
-}
+local TweenModel = {} :: Types.TweenModelAPI
 
 --// Variables
-local activeTweens = {} :: { [Instance]: TweenData }
+local activeTweens = {} :: { [Instance]: Types.TweenData }
 
 --// Local functions
+
+--[=[
+	Prints debug messages
+]=]
+local function PrintDebug(...)
+	-- Prevent debug messages when debug is not enabled
+	if DebugEnabled ~= true then
+		return
+	end
+	
+	if RunService:IsServer() then
+		print(`{OutputPrefix} (Server):`, ...)
+	elseif RunService:IsClient() then
+		print(`{OutputPrefix} (Client):`, ...)
+	end
+end
 
 --[=[
 	Checks the version
@@ -54,7 +53,7 @@ local function CheckVersion(): ()
 	local info = MarketPlaceService:GetProductInfo(6019253834, Enum.InfoType.Asset)
 	local description: string = info.Description
 
-	local latest = description:split(" ")[3]:gsub("%s", ""):gsub("Tweens", "")
+	local latest = description:match("%d+.%d+.%d+")
 	if latest and latest ~= ModuleVersion then
 		warn(
 			`{OutputPrefix} Module is outdated, newest version available is: {latest}. Current module version is: {ModuleVersion}.`
@@ -69,7 +68,9 @@ end
 
 	@return TweenTable -- The transformed TweenInfo
 ]=]
-local function TweenInfoToTweenTable(info: TweenInfo): TweenTable
+local function TweenInfoToTweenTable(info: TweenInfo): Types.TweenTable
+	PrintDebug("Transforming TweenInfo instance to TweenTable, TweenInfo:", info)
+	
 	return {
 		EasingDirection = info.EasingDirection,
 		Time = info.Time,
@@ -87,7 +88,9 @@ end
 
 	@return TweenInfo -- The transformed TweenInfo
 ]=]
-local function TweenTableToTweenInfo(info: TweenTable): TweenInfo
+local function TweenTableToTweenInfo(info: Types.TweenTable): TweenInfo
+	PrintDebug("Transforming TweenTable instance to TweenInfo, TweenTable:", info)
+	
 	return TweenInfo.new(
 		info.Time or 0,
 		info.EasingStyle,
@@ -105,27 +108,29 @@ end
 ]=]
 local function SetupClient(player: Player): ()
 	local clone = TweenModelSetup:Clone()
-	local playerscripts = player:WaitForChild("PlayerGui", 15)
+	local playerGui = player:WaitForChild("PlayerGui", 15)
 
 	-- Retry if player still exists
-	if not playerscripts and player.Parent == Players then
+	if not playerGui and player.Parent == Players then
 		SetupClient(player)
 	-- Give up when client doesn't exist anymore
-	elseif not playerscripts then
+	elseif not playerGui then
 		return
 	end
 
-	clone.Parent = playerscripts
+	clone.Parent = playerGui
+	
+	PrintDebug(`Running setup script on player: {player}`)
 end
 
 --[=[
 	Registers the tween in active tweens and connects events
 ]=]
-local function RegisterTween(tweendata: TweenData): TweenData
+local function RegisterTween(tweendata: Types.TweenData): Types.TweenData
 	activeTweens[tweendata.Model] = tweendata
 
 	local CFrameValue = Instance.new("CFrameValue")
-	CFrameValue.Value = tweendata.Model:GetPivot()
+	CFrameValue.Value = tweendata.CurrentCFrame
 
 	local createdTween = TweenService:Create(CFrameValue, TweenTableToTweenInfo(tweendata.Info), {
 		Value = tweendata.TargetCFrame,
@@ -140,6 +145,8 @@ local function RegisterTween(tweendata: TweenData): TweenData
 
 	createdTween.Completed:Connect(function(state)
 		if state == Enum.PlaybackState.Completed or activeTweens[tweendata.Model].Destroying == true then
+			PrintDebug("Destroying TweenData:", activeTweens[tweendata.Model])
+			
 			-- Disconnect everything
 			createdTween:Destroy()
 
@@ -150,6 +157,8 @@ local function RegisterTween(tweendata: TweenData): TweenData
 			activeTweens[tweendata.Model] = nil
 		end
 	end)
+	
+	PrintDebug("Registered new tween, current data:", activeTweens[tweendata.Model])
 
 	return activeTweens[tweendata.Model]
 end
@@ -165,7 +174,9 @@ end
 
 	@return Tween -- The tween instance you can use
 ]=]
-function TweenModel.new(model: Model, info: TweenInfo, target: Target): Tween
+function TweenModel.new(model: Model, info: TweenInfo, target: Types.Target): Tween
+	PrintDebug(`Creating new tween with arguments, model: {model}, info: {info}, target: {target}`)
+	
 	local isModel, hasPrimary = pcall(function()
 		if model.PrimaryPart then
 			return true
@@ -209,10 +220,15 @@ function TweenModel.new(model: Model, info: TweenInfo, target: Target): Tween
 		while activeTweens[model] ~= nil do
 			task.wait()
 		end
+		
+		PrintDebug(`Cancelled current tween from model: {model:GetFullName()}`)
 	end
 
 	local CFrameValue = Instance.new("CFrameValue")
 	CFrameValue.Value = model:GetPivot()
+	CFrameValue.Changed:Connect(function(newValue: CFrame)
+		activeTweens[model].CurrentCFrame = newValue
+	end)
 
 	local createdTween = TweenService:Create(CFrameValue, info, {
 		Value = target,
@@ -234,6 +250,7 @@ function TweenModel.new(model: Model, info: TweenInfo, target: Target): Tween
 	}
 
 	createdTween:GetPropertyChangedSignal("PlaybackState"):Connect(function()
+		PrintDebug(`Tween state changed! Old state: {activeTweens[model].State}, new state: {createdTween.PlaybackState}`)
 		activeTweens[model].State = createdTween.PlaybackState
 		model:PivotTo(CFrameValue.Value)
 		TweenEvent:FireAllClients(activeTweens[model])
@@ -242,6 +259,8 @@ function TweenModel.new(model: Model, info: TweenInfo, target: Target): Tween
 	-- Handle cleaning up on completion
 	createdTween.Completed:Connect(function(state)
 		if state == Enum.PlaybackState.Completed or activeTweens[model].Destroying == true then
+			PrintDebug("Destroying TweenData:", activeTweens[model])
+			
 			-- Update model position on server side
 			model:PivotTo(CFrameValue.Value)
 
@@ -258,47 +277,77 @@ function TweenModel.new(model: Model, info: TweenInfo, target: Target): Tween
 
 	-- Send new created tween to client
 	TweenEvent:FireAllClients(activeTweens[model])
+	
+	PrintDebug("Created new tween, current data:", activeTweens[model])
 
 	return createdTween
 end
 
-function TweenModel:PlayInstant(model: Model, info: TweenInfo, target: Target): Tween
-	-- Create the new tween
-	local tween = TweenModel.new(model, info, target)
+function TweenModel.PlayInstant(self: {}? | Model, model: Model | TweenInfo, info: TweenInfo | Types.Target, target: Types.Target): Tween
+	if typeof(self) == "Instance" and self:IsA("Model") then
+		-- Using the new way
 
-	-- Play the tween
-	tween:Play()
+		-- Create the new tween
+		local tween = TweenModel.new(self, model, info)
 
-	-- Return tween if server needs it
-	return tween
+		-- Play the tween
+		tween:Play()
+
+		-- Return tween if server needs it
+		return tween
+	else
+		-- Using the old way
+		
+		-- Create the new tween
+		local tween = TweenModel.new(model, info, target)
+
+		-- Play the tween
+		tween:Play()
+
+		-- Return tween if server needs it
+		return tween
+	end
 end
 
 -- Setup server side
 if RunService:IsServer() then
 	-- Setup client reference
 	if script.Parent == ReplicatedStorage then
-		ClientReference.Value = script
+		ClientReference.Value = ReplicatedStorage:WaitForChild("TweenModel")
 	elseif ReplicatedStorage:FindFirstChild("TweenModel") then
 		ClientReference.Value = ReplicatedStorage:WaitForChild("TweenModel")
-		return require(ClientReference.Value)
+		return require(ClientReference.Value) :: Types.TweenModelAPI
 	else
-		script:Clone().Parent = ReplicatedStorage
+		local clone = script:Clone()
+		clone.Name = "TweenModel"
+		clone.Parent = ReplicatedStorage
 		ClientReference.Value = ReplicatedStorage:WaitForChild("TweenModel")
-		return require(ClientReference.Value)
+		return require(ClientReference.Value) :: Types.TweenModelAPI
 	end
 
 	-- Insert setup script to players
-	Players.PlayerAdded:Connect(function(player: Player)
-		SetupClient(player)
-	end)
+	Players.PlayerAdded:Connect(SetupClient)
 	for _, player: Player in Players:GetPlayers() do
 		task.spawn(SetupClient, player)
 	end
+	
+	-- Client requests current tweens
+	TweenEvent.OnServerEvent:Connect(function(player: Player)
+		for _, tweenData in activeTweens do
+			TweenEvent:FireClient(player, tweenData)
+		end
+	end)
 
 -- Setup client side
 elseif RunService:IsClient() then
-	TweenEvent.OnClientEvent:Connect(function(tweendata: TweenData)
+	-- Request active tweens
+	TweenEvent:FireServer()
+	
+	-- Listen to active tweens changes
+	TweenEvent.OnClientEvent:Connect(function(tweendata: Types.TweenData)
 		local clientData = activeTweens[tweendata.Model] or RegisterTween(tweendata)
+		
+		PrintDebug("Received tween event! New data:", tweendata)
 
 		if tweendata.State == Enum.PlaybackState.Playing then
 			clientData.Tween:Play()
@@ -314,9 +363,9 @@ elseif RunService:IsClient() then
 end
 
 -- Notify logs about version
-print(`{OutputPrefix} Module loaded! Current version: {ModuleVersion}`)
+PrintDebug(`Module loaded! Current version: {ModuleVersion}`)
 
 -- Run version check in the background
 task.spawn(CheckVersion)
 
-return TweenModel
+return TweenModel :: Types.TweenModelAPI

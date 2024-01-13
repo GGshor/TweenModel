@@ -1,8 +1,8 @@
 --[[
-Version: 2.0.0
+Version: 2.2.0
 Changelog:
 
--- All CFrame calculations are now done on client.
+-- Fixed tweens not playing on client when active on server
 
 Credits:
 
@@ -44,18 +44,18 @@ Tween:Play() -- Plays the tween.
 ------------------------------------------------------------------------------
 
 
-TweenModel:PlayInstant(): Tween
+TweenModel.PlayInstant(): Tween
 ------------------------------------------------------------------------------
 //////////////////////////////////////////////////////////////////////////////
 ------------------------------------------------------------------------------
 
-If you need to play the tween immediatly use TweenModel:PlayInstant()
+If you need to play the tween immediatly use TweenModel.PlayInstant()
 
 Example:
 
 local TweenModel = require(6019253834) -- Get the module. Use id to get most updated version!
 
-TweenModel:PlayInstant( -- Creates a new tween
+TweenModel.PlayInstant( -- Creates a new tween
 	script.Parent.Door, -- Which model should be moved. (SET THE PRIMARYPART, to something in the middle or something)
 	TweenInfo.new(
 		5, -- Amount of seconds it take. (Default = 1)
@@ -71,29 +71,6 @@ TweenModel:PlayInstant( -- Creates a new tween
 You don't have to call Tween:Play() anymore.
 
 Will still return the tween object if needed
-
-------------------------------------------------------------------------------
-//////////////////////////////////////////////////////////////////////////////
-------------------------------------------------------------------------------
-
-
-TweenModel.move(): boolean
-------------------------------------------------------------------------------
-//////////////////////////////////////////////////////////////////////////////
-------------------------------------------------------------------------------
-
-Moves a model in a instant to given target.
-
-Example:
-
-local TweenModel = require(6019253834) -- Get the module. Use id to get most updated version!
-
-local moved = TweenModel.move(
-	Model, -- Which model should be moved (SET THE PRIMARYPART TO A PART IN THE MIDDLE)
-	Goal -- Where model should move to (Should be a duplicate of your PRIMARYPART)
-)
-
-Returns boolean if the model moved with no problems
 
 ------------------------------------------------------------------------------
 //////////////////////////////////////////////////////////////////////////////

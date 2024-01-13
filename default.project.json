@@ -1,7 +1,7 @@
 {
 	"name": "TweenModel",
 	"tree": {
-		"$path": "loader.module.lua",
+		"$path": "release/init.module.lua",
 
 		"TweenModel": {
 			"$path": "src/"

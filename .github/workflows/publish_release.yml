@@ -3,7 +3,6 @@ name: Publish release to Roblox
 on:
   release:
     types: [published]
-    branches: [main]
 
 jobs:
   publish-module:
