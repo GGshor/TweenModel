@@ -309,6 +309,120 @@ function TweenModel.PlayInstant(self: {}? | Model, model: Model | TweenInfo, inf
 	end
 end
 
+--[=[
+    Creates a new tween but only runs it on server.
+
+    @param model Model -- The model you want to tween
+    @param info TweenInfo -- The tweeninfo you want to use
+    @param target Target -- the goal
+
+	@return Tween -- The tween instance you can use
+]=]
+function TweenModel.TweenServer(model: Model, info: TweenInfo, target: Types.Target): Tween
+	PrintDebug(`Creating new server tween with arguments, model: {model}, info: {info}, target: {target}`)
+	
+	local isModel, hasPrimary = pcall(function()
+		if model.PrimaryPart then
+			return true
+		else
+			return false
+		end
+	end)
+
+	local isTarget, isValidTarget = pcall(function()
+		if typeof(target) == "CFrame" then
+			return true
+		elseif target.CFrame then
+			target = target.CFrame
+			return true
+		else
+			return false
+		end
+	end)
+
+	if isModel == false or hasPrimary == false then
+		error(
+			`{OutputPrefix} Model does not have a primary part, please set the primary part before tweening! Model: {model and model:GetFullName()}`
+		)
+	end
+
+	if isTarget == false or isValidTarget == false then
+		error(`target is invalid, please use a BasePart or CFrame. ({typeof(target)})`)
+	end
+
+	if typeof(info) ~= "TweenInfo" then
+		error(`TweenInformation is invalid, please use TweenInfo.`)
+	end
+
+	-- Cancel any active tweens on model, this will automatically destroy it
+	if activeTweens[model] then
+		activeTweens[model].Destroying = true
+
+		activeTweens[model].Tween:Cancel()
+
+		-- Wait for entry to be removed
+		while activeTweens[model] ~= nil do
+			task.wait()
+		end
+		
+		PrintDebug(`Cancelled current tween from model: {model:GetFullName()}`)
+	end
+
+	local CFrameValue = Instance.new("CFrameValue")
+	CFrameValue.Value = model:GetPivot()
+	CFrameValue.Changed:Connect(function(newValue: CFrame)
+		activeTweens[model].CurrentCFrame = newValue
+	end)
+
+	local createdTween = TweenService:Create(CFrameValue, info, {
+		Value = target,
+	})
+
+	-- Add entry to active tweens
+	local currentId = HttpService:GenerateGUID(false)
+	activeTweens[model] = {
+		Id = currentId,
+		State = createdTween.PlaybackState,
+		OriginalCFrame = model:GetPivot(),
+		CurrentCFrame = CFrameValue.Value,
+		TargetCFrame = target,
+		Info = TweenInfoToTweenTable(info),
+		Model = model,
+		Tween = createdTween,
+		Destroying = false,
+		CFrameInstance = CFrameValue,
+	}
+
+	createdTween:GetPropertyChangedSignal("PlaybackState"):Connect(function()
+		PrintDebug(`Tween state changed! Old state: {activeTweens[model].State}, new state: {createdTween.PlaybackState}`)
+		activeTweens[model].State = createdTween.PlaybackState
+		model:PivotTo(CFrameValue.Value)
+	end)
+
+	-- Handle cleaning up on completion
+	createdTween.Completed:Connect(function(state)
+		if state == Enum.PlaybackState.Completed or activeTweens[model].Destroying == true then
+			PrintDebug("Destroying TweenData:", activeTweens[model])
+			
+			-- Update model position on server side
+			model:PivotTo(CFrameValue.Value)
+
+			-- Disconnect everything
+			createdTween:Destroy()
+
+			-- Remove used CFrameValue
+			CFrameValue:Destroy()
+
+			-- Remove from active tweens list
+			activeTweens[model] = nil
+		end
+	end)
+
+	PrintDebug("Created new server tween, current data:", activeTweens[model])
+
+	return createdTween
+end
+
 -- Setup server side
 if RunService:IsServer() then
 	-- Setup client reference
